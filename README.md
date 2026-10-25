@@ -11,7 +11,7 @@
 
 ## 安装
 
-**插件市场**：在 DSH 的 **插件 → 发现** 里添加索引源 `https://suj1e.github.io/seek-bazaar/index.json`，找到 PromptSmith 安装。
+**插件市场**：在 DSH 的 **插件 → 发现** 里添加索引源 `https://seekbazaar.beer/index.json`，找到 PromptSmith 安装。
 
 **命令行**：
 
