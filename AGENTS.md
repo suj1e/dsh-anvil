@@ -78,9 +78,10 @@ npm run watch                                                         # 改代�
 
 1. 改 `package.json` 的 `version`，提交；
 2. 打同名 tag 并推送：`git tag v0.1.0 && git push origin v0.1.0`；
-3. `release.yml` 校验 tag 与版本一致后发布到 npm（带 `-` 的预发布版本发到 `next` 渠道）。需要仓库 secret `NPM_TOKEN`。
+3. `release.yml` 校验 tag 与版本一致后发布到 npm（带 `-` 的预发布版本发到 `next` 渠道）。需要仓库 secret `NPM_TOKEN`；
+4. **到 npm 批准**：npm 的 staged publishing 会把 CI 发布的版本先放进暂存区，需要维护者在 npmjs.com 的 **Staged Packages** 页签点 **Approve**（要 2FA），或用 npm ≥ 11.15 执行 `npm stage list dsh-promptsmith` / `npm stage approve <stage-id>`。批准前 registry 上看不到新版本；包首次发布时只有一个 `0.0.0-stage` 占位版本。
 
-首次发布后，在 [seek-bazaar](https://github.com/suj1e/seek-bazaar) 的 `plugins.txt` 加一行 `dsh-promptsmith`，之后的新版本会被市场每日自动收录。
+插件已收录在 [seek-bazaar](https://github.com/suj1e/seek-bazaar) 的 `plugins.txt`，新版本批准后会被市场每日自动收录，想立即更新可在 seek-bazaar 手动运行 generate index 工作流。
 
 ## 约定
 
