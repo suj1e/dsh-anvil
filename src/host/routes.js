@@ -1,4 +1,4 @@
-// HTTP 接口：POST /dsh-promptsmith/polish、POST /dsh-promptsmith/predict
+// HTTP 接口：POST /dsh-anvil/polish、POST /dsh-anvil/predict
 import { complete, DEFAULTS, HttpError } from './llm.js'
 import { cleanOutput, POLISH_SYSTEM, polishInput, PREDICT_SYSTEM, predictInput } from './prompts.js'
 
@@ -15,7 +15,7 @@ function header(request, name) {
  * 并要求自定义请求头，使普通网页无法不经 CORS 预检直接调用。
  */
 function trusted(request) {
-  if (header(request, 'x-dsh-promptsmith') !== '1') return false
+  if (header(request, 'x-dsh-anvil') !== '1') return false
   if (header(request, 'sec-fetch-site') === 'cross-site') return false
   const origin = header(request, 'origin')
   if (origin === undefined) return true
@@ -90,7 +90,7 @@ export function mountRoutes(ctx, config) {
   for (const [action, handle] of Object.entries(handlers)) {
     ctx.effect(() => ctx.webServer.register({
       kind: 'exact',
-      path: `/dsh-promptsmith/${action}`,
+      path: `/dsh-anvil/${action}`,
       handler: async (request, response) => {
         if (!trusted(request)) return send(response, 403, { error: '只接受来自 DSH 页面的请求' })
         if (request.method !== 'POST') return send(response, 405, { error: '只支持 POST' })
@@ -102,10 +102,10 @@ export function mountRoutes(ctx, config) {
         } catch (error) {
           if (abort.signal.aborted) return
           const status = error instanceof HttpError ? error.status : 500
-          if (status === 500) console.warn('[dsh-promptsmith]', error)
+          if (status === 500) console.warn('[dsh-anvil]', error)
           send(response, status, { error: error?.message ?? String(error) })
         }
       },
-    }), `dsh-promptsmith: ${action} route`)
+    }), `dsh-anvil: ${action} route`)
   }
 }

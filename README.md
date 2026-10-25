@@ -1,32 +1,36 @@
-# PromptSmith 提示词工坊
+# Anvil 铁砧
 
-[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（DSH）插件，在输入框里帮你写提示词：
+[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（DSH）输入框增强插件。提示词就在这块铁砧上锻打成型：
 
-- **✨ 一键润色**：输入框工具栏多了一个闪光按钮，点一下，结合当前对话上下文把草稿改写得更清晰、具体。会补全「那个」「上面的」这类指代，只改写、不作答。润色后按钮变成撤销，在你修改草稿前随时可以恢复原文。
-- **💡 预测下一句**：每轮回答结束后，输入框里会用灰字显示你接下来可能想说的话，按 <kbd>Tab</kbd> 采用。
+- **✨ 一键润色**：工具栏的闪光按钮，点一下结合当前对话上下文把草稿改写得更清晰、具体。会补全「那个」「上面的」这类指代，只改写、不作答。润色后按钮变成撤销，在你修改草稿前随时可以恢复原文。
+- **💡 预测下一句**：每轮回答结束后，输入框里用灰字显示你接下来可能想说的话，按 <kbd>Tab</kbd> 采用。
+- **⚙️ 挡位式模型与推理等级**：替换 DSH 自带的模型选择器。工具栏显示「模型名 + 表盘 + 等级」，在上面滚动鼠标滚轮直接换挡；点开是一个短菜单：
+  - 最近用的 4 个模型，数字键 <kbd>1</kbd>–<kbd>4</kbd> 直选；
+  - 推理等级挡位条：拖动、滚轮或 <kbd>←</kbd> <kbd>→</kbd> 换挡，「自动」开关交给模型决定；
+  - 「更多模型 ›」在右侧展开，搜索加按提供方折叠的完整列表。
 
-润色时按钮像被锤子敲打、完成时火星四溅；等待预测时有一串小钢琴键在弹。系统开启「减弱动态效果」时动画会自动关闭。
+润色时按钮像被锤子敲打、完成时火星四溅；等待预测时有一串小钢琴键在弹；拖动挡位时溅出火星，挂挡时迸出一簇。系统开启「减弱动态效果」时动画自动关闭。
 
-两个功能都使用当前会话正在用的模型，请求不会写入会话记录。
+润色和预测都使用当前会话正在用的模型，请求不会写入会话记录。模型选择与 DSH 的 `/model` 命令共用同一份状态。
 
 ## 安装
 
-**插件市场**：在 DSH 的 **插件 → 发现** 里添加索引源 `https://seekbazaar.beer/index.json`，找到 PromptSmith 安装。
+**插件市场**：在 DSH 的 **插件 → 发现** 里添加索引源 `https://seekbazaar.beer/index.json`，找到 Anvil 安装。
 
 **命令行**：
 
 ```bash
-dsh plugin --profile <profile> add dsh-promptsmith
+dsh plugin --profile <profile> add dsh-anvil
 ```
 
-需要 DSH ≥ 0.2.1-rc.3。
+需要 DSH ≥ 0.2.1-rc.3。卸载或禁用插件后，DSH 自带的模型选择器自动恢复。
 
 ## 配置
 
-在 profile 的 `cordis.patch.yml` 里覆盖 `promptsmith` 这一行的 `config`（所有字段可选）：
+在 profile 的 `cordis.patch.yml` 里覆盖 `anvil` 这一行的 `config`（所有字段可选），作用于润色和预测：
 
 ```yaml
-- id: promptsmith
+- id: anvil
   config:
     contextMessages: 12      # 带给模型的最近消息条数
     maxContextChars: 12000   # 上下文总字符上限

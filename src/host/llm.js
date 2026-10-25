@@ -75,7 +75,7 @@ export async function complete(ctx, options, { session, system, input, signal })
     id: randomUUID(),
     role: 'user',
     content: [{ type: 'text', text: input }],
-    source: { kind: 'dsh-promptsmith' },
+    source: { kind: 'dsh-anvil' },
   }]
   let text = ''
   for await (const chunk of call.stream({ ...call.config, messages, system, sessionId, signal: combined })) {

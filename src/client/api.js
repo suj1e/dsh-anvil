@@ -1,8 +1,8 @@
 // 调用 host 端接口（与页面同源）。
 async function post(action, body, signal) {
-  const response = await fetch(`/dsh-promptsmith/${action}`, {
+  const response = await fetch(`/dsh-anvil/${action}`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-dsh-promptsmith': '1' },
+    headers: { 'content-type': 'application/json', 'x-dsh-anvil': '1' },
     body: JSON.stringify(body),
     signal,
   })

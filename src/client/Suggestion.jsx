@@ -11,7 +11,7 @@ function findPlaceholder(editor) {
   const parent = editor.parentElement
   if (!parent) return null
   for (const child of parent.children) {
-    if (child !== editor && !child.contains(editor) && child.textContent.trim() !== '' && !child.classList.contains('psm-ghost')) {
+    if (child !== editor && !child.contains(editor) && child.textContent.trim() !== '' && !child.classList.contains('anv-ghost')) {
       return child
     }
   }
@@ -24,12 +24,12 @@ const NOTES = [{ x: 6, d: '0s', n: '♪' }, { x: 26, d: '.7s', n: '♫' }, { x: 
 
 function Piano() {
   return (
-    <span className="psm-piano" aria-label="正在预测下一句">
+    <span className="anv-piano" aria-label="正在预测下一句">
       {KEYS.map((kind, i) => (
-        <i key={i} className={kind === 'b' ? 'psm-key psm-black' : 'psm-key'} style={{ '--i': i }} />
+        <i key={i} className={kind === 'b' ? 'anv-key anv-black' : 'anv-key'} style={{ '--i': i }} />
       ))}
       {NOTES.map((note, i) => (
-        <span key={`n${i}`} className="psm-note" style={{ '--x': note.x, '--d': note.d }}>{note.n}</span>
+        <span key={`n${i}`} className="anv-note" style={{ '--x': note.x, '--d': note.d }}>{note.n}</span>
       ))}
     </span>
   )
@@ -88,8 +88,8 @@ export function Suggestion({ sessionId, inputActions, useInput, useSession }) {
     if (!found) return undefined
     const { card, editor } = found
     const placeholder = findPlaceholder(editor)
-    placeholder?.classList.add('psm-hide-placeholder')
-    card.setAttribute('data-psm-ghost', '')
+    placeholder?.classList.add('anv-hide-placeholder')
+    card.setAttribute('data-anv-ghost', '')
     const measure = () => {
       const origin = anchor.current?.offsetParent ?? card
       const base = origin.getBoundingClientRect()
@@ -108,8 +108,8 @@ export function Suggestion({ sessionId, inputActions, useInput, useSession }) {
     observer.observe(editor)
     return () => {
       observer.disconnect()
-      placeholder?.classList.remove('psm-hide-placeholder')
-      card.removeAttribute('data-psm-ghost')
+      placeholder?.classList.remove('anv-hide-placeholder')
+      card.removeAttribute('data-anv-ghost')
     }
   }, [visible])
 
@@ -124,7 +124,7 @@ export function Suggestion({ sessionId, inputActions, useInput, useSession }) {
       event.stopImmediatePropagation()
       inputActions.setDraft(text)
       setText('')
-      overlay(found.card, 'psm-fx psm-flash', 650)
+      overlay(found.card, 'anv-fx anv-flash', 650)
     }
     document.addEventListener('keydown', onKeyDown, true)
     return () => document.removeEventListener('keydown', onKeyDown, true)
@@ -137,20 +137,20 @@ export function Suggestion({ sessionId, inputActions, useInput, useSession }) {
       {visible && box !== null
         ? (
             <span
-              className="psm-ghost"
+              className="anv-ghost"
               style={{ left: box.left, top: box.top, width: box.width, font: box.font, lineHeight: box.lineHeight }}
             >
               {showText
                 ? (
                     <>
-                      <span className="psm-ghost-text">{text.slice(0, typed)}</span>
-                      {done ? null : <span className="psm-caret" />}
+                      <span className="anv-ghost-text">{text.slice(0, typed)}</span>
+                      {done ? null : <span className="anv-caret" />}
                     </>
                   )
                 : (
                     <>
                       <Piano />
-                      <span className="psm-piano-label">正在想你下一句…</span>
+                      <span className="anv-piano-label">正在想你下一句…</span>
                     </>
                   )}
             </span>

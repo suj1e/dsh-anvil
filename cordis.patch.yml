@@ -1,4 +1,4 @@
-# 把 promptsmith 插入 profile：host 端提供润色/预测接口，client 端（package.json 的 dsh.client）提供输入框里的星星按钮和预测灰字。
+# 把 anvil 插入 profile：host 端提供润色/预测接口，client 端（package.json 的 dsh.client）提供输入框里的星星按钮和预测灰字。
 - insert:
-    - id: promptsmith
-      name: dsh-promptsmith
+    - id: anvil
+      name: dsh-anvil

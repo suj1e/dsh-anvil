@@ -1,14 +1,20 @@
 {
-  "name": "dsh-promptsmith",
-  "version": "0.1.0",
-  "description": "DeepSeek Harness 插件：输入框一键润色草稿，回答结束后预测下一句",
-  "keywords": ["dsh", "deepseek-harness", "dsh-plugin", "prompt"],
+  "name": "dsh-anvil",
+  "version": "0.2.0",
+  "description": "DeepSeek Harness 输入框增强：一键润色、预测下一句、挡位式模型与推理等级选择",
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "dsh-plugin",
+    "prompt",
+    "model-picker"
+  ],
   "license": "MIT",
   "author": "suj1e",
-  "homepage": "https://github.com/suj1e/dsh-promptsmith",
+  "homepage": "https://github.com/suj1e/dsh-anvil",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/suj1e/dsh-promptsmith.git"
+    "url": "git+https://github.com/suj1e/dsh-anvil.git"
   },
   "type": "module",
   "icon": "./icon.svg",
@@ -19,7 +25,14 @@
     "./package.json": "./package.json",
     "./locale/*.json": "./locale/*.json"
   },
-  "files": ["lib", "locale/*.json", "cordis.patch.yml", "icon.svg", "README.md", "LICENSE"],
+  "files": [
+    "lib",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "icon.svg",
+    "README.md",
+    "LICENSE"
+  ],
   "engines": {
     "dsh": ">=0.2.1-rc.3 <0.3.0"
   },
@@ -38,7 +51,8 @@
     "client": {
       "inject": [
         "@deepseek-ai/dsh-client-runtime",
-        "@deepseek-ai/dsh-client-ui-conversation"
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-model-selection"
       ],
       "platform": "web"
     }

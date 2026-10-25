@@ -5,25 +5,25 @@ import { polish } from './api.js'
 import { findComposer, overlay, reducedMotion } from './dom.js'
 
 const BUBBLE_MS = 3500
-const SPARK_COLORS = ['var(--psm-ember-1)', 'var(--psm-ember-2)', 'var(--psm-ember-3)']
+const SPARK_COLORS = ['var(--anv-ember-1)', 'var(--anv-ember-2)', 'var(--anv-ember-3)']
 
 function SparkleIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <defs>
-        <linearGradient id="psm-ember" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id="anv-ember" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#fcd34d" />
           <stop offset=".5" stopColor="#fb923c" />
           <stop offset="1" stopColor="#f472b6" />
         </linearGradient>
       </defs>
       <path
-        className="psm-main"
+        className="anv-main"
         d="M10 3.5C10.8 9 12.6 10.9 18 12C12.6 13.1 10.8 15 10 20.5C9.2 15 7.4 13.1 2 12C7.4 10.9 9.2 9 10 3.5Z"
-        fill="url(#psm-ember)"
+        fill="url(#anv-ember)"
       />
       <path
-        className="psm-mini"
+        className="anv-mini"
         d="M18.5 1.5C18.8 3.6 19.4 4.2 21.5 4.5C19.4 4.8 18.8 5.4 18.5 7.5C18.2 5.4 17.6 4.8 15.5 4.5C17.6 4.2 18.2 3.6 18.5 1.5Z"
         fill="#fde68a"
       />
@@ -50,9 +50,9 @@ function Sparks() {
       '--c': SPARK_COLORS[i % 3],
       animationDelay: `${(i % 4) * 25}ms`,
     }
-    sparks.push(<i key={i} className="psm-spark" style={style} />)
+    sparks.push(<i key={i} className="anv-spark" style={style} />)
   }
-  return <span className="psm-sparks" aria-hidden="true">{sparks}</span>
+  return <span className="anv-sparks" aria-hidden="true">{sparks}</span>
 }
 
 export function PolishButton({ sessionId, inputActions, useInput, useSession }) {
@@ -97,7 +97,7 @@ export function PolishButton({ sessionId, inputActions, useInput, useSession }) 
   React.useEffect(() => {
     if (state !== 'working') return undefined
     const found = findComposer(root.current)
-    return found ? overlay(found.editor, 'psm-fx psm-forging') : undefined
+    return found ? overlay(found.editor, 'anv-fx anv-forging') : undefined
   }, [state])
 
   // 切换会话或卸载时取消进行中的请求
@@ -107,7 +107,7 @@ export function PolishButton({ sessionId, inputActions, useInput, useSession }) 
   const sweep = () => {
     requestAnimationFrame(() => {
       const found = findComposer(root.current)
-      if (found) overlay(found.editor, 'psm-fx psm-sweep', 950)
+      if (found) overlay(found.editor, 'anv-fx anv-sweep', 950)
     })
   }
 
@@ -146,22 +146,22 @@ export function PolishButton({ sessionId, inputActions, useInput, useSession }) 
     <span ref={root} style={{ position: 'relative', display: 'inline-flex' }}>
       <button
         type="button"
-        className="psm-polish"
+        className="anv-polish"
         data-state={state}
         data-shake={shake === 0 ? undefined : shake % 2}
-        onAnimationEnd={(event) => { if (event.animationName === 'psm-shake') setShake(0) }}
+        onAnimationEnd={(event) => { if (event.animationName === 'anv-shake') setShake(0) }}
         aria-label={label}
         title={label}
         disabled={disabled}
         onClick={run}
       >
         {/* key 变化时重新挂载，触发图标弹出动画 */}
-        <span key={state === 'done' ? 'undo' : 'sparkle'} className="psm-icon">
+        <span key={state === 'done' ? 'undo' : 'sparkle'} className="anv-icon">
           {state === 'done' ? <UndoIcon /> : <SparkleIcon />}
         </span>
         {burst === 0 ? null : <Sparks key={burst} />}
       </button>
-      {bubble === null ? null : <span key={bubble.at} className="psm-bubble" data-kind={bubble.kind}>{bubble.text}</span>}
+      {bubble === null ? null : <span key={bubble.at} className="anv-bubble" data-kind={bubble.kind}>{bubble.text}</span>}
     </span>
   )
 }
