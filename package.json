@@ -1,0 +1,46 @@
+{
+  "name": "dsh-promptsmith",
+  "version": "0.1.0",
+  "description": "DeepSeek Harness 插件：输入框一键润色草稿，回答结束后预测下一句",
+  "keywords": ["dsh", "deepseek-harness", "dsh-plugin", "prompt"],
+  "license": "MIT",
+  "author": "suj1e",
+  "homepage": "https://github.com/suj1e/dsh-promptsmith",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/suj1e/dsh-promptsmith.git"
+  },
+  "type": "module",
+  "icon": "./icon.svg",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
+  },
+  "files": ["lib", "locale/*.json", "cordis.patch.yml", "icon.svg", "README.md", "LICENSE"],
+  "engines": {
+    "dsh": ">=0.2.1-rc.3 <0.3.0"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ],
+      "platform": "web"
+    }
+  }
+}
