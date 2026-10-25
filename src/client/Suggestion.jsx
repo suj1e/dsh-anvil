@@ -1,15 +1,10 @@
 // 预测下一句：每轮回答结束后请求一次预测，输入框为空时以灰字显示，按 Tab 采用。
-import { h, React } from './react.js'
+// 动画：等待时钢琴键琶音；结果逐字打出；采用时输入卡片边缘亮一下。
+import { Fragment, h, React } from './react.js'
 import { predict } from './api.js'
+import { findComposer, overlay, reducedMotion } from './dom.js'
 
-/** 从 overlay 锚点向上找到包含编辑器的输入卡片 */
-function findEditor(anchor) {
-  for (let node = anchor?.parentElement; node; node = node.parentElement) {
-    const editor = node.querySelector('[contenteditable="true"]')
-    if (editor) return { card: node, editor }
-  }
-  return null
-}
+const TYPE_MS = 32
 
 /** 编辑器为空时 DSH 显示的占位提示：与编辑器同层、文字非空、不是编辑器本身 */
 function findPlaceholder(editor) {
@@ -23,38 +18,73 @@ function findPlaceholder(editor) {
   return null
 }
 
+// 白键 + 黑键交替，与 i 一起决定按下顺序
+const KEYS = ['w', 'b', 'w', 'b', 'w', 'w', 'b', 'w']
+const NOTES = [{ x: 6, d: '0s', n: '♪' }, { x: 26, d: '.7s', n: '♫' }, { x: 44, d: '1.4s', n: '♪' }]
+
+function Piano() {
+  return (
+    <span className="psm-piano" aria-label="正在预测下一句">
+      {KEYS.map((kind, i) => (
+        <i key={i} className={kind === 'b' ? 'psm-key psm-black' : 'psm-key'} style={{ '--i': i }} />
+      ))}
+      {NOTES.map((note, i) => (
+        <span key={`n${i}`} className="psm-note" style={{ '--x': note.x, '--d': note.d }}>{note.n}</span>
+      ))}
+    </span>
+  )
+}
+
 export function Suggestion({ sessionId, inputActions, useInput, useSession }) {
   // DSH 的会话 Hook 需要 selector，只取用到的字段
   const draft = useInput(state => state.draft)
   const phase = useInput(state => state.phase)
   const running = useSession(snapshot => snapshot.running)
   const [text, setText] = React.useState('')
+  const [pending, setPending] = React.useState(false)
+  const [typed, setTyped] = React.useState(0)
   const [box, setBox] = React.useState(null)
   const anchor = React.useRef(null)
   const wasRunning = React.useRef(running)
 
   // 切换会话时清空
-  React.useEffect(() => { setText(''); wasRunning.current = running }, [sessionId])
+  React.useEffect(() => { setText(''); setPending(false); wasRunning.current = running }, [sessionId])
 
   // 一轮回答结束（running: true -> false）时请求预测
   React.useEffect(() => {
     const finished = wasRunning.current && !running
     wasRunning.current = running
-    if (running) { setText(''); return undefined }
+    if (running) { setText(''); setPending(false); return undefined }
     if (!finished) return undefined
     const controller = new AbortController()
+    setPending(true)
     predict(sessionId, controller.signal)
-      .then(result => { if (!controller.signal.aborted) setText(result) })
+      .then((result) => {
+        if (controller.signal.aborted) return
+        setTyped(reducedMotion() ? result.length : 0)
+        setText(result)
+      })
       .catch(() => {})
-    return () => controller.abort()
+      .finally(() => { if (!controller.signal.aborted) setPending(false) })
+    return () => { controller.abort(); setPending(false) }
   }, [running, sessionId])
 
-  const visible = text !== '' && draft === '' && phase === 'plain' && !running
+  // 逐字打出
+  React.useEffect(() => {
+    if (typed >= text.length) return undefined
+    const timer = setTimeout(() => setTyped(n => n + 1), TYPE_MS)
+    return () => clearTimeout(timer)
+  }, [typed, text])
+
+  const empty = draft === '' && phase === 'plain' && !running
+  const showText = empty && text !== ''
+  const showPiano = empty && pending
+  const visible = showText || showPiano
 
   // 把灰字放到编辑器文字的位置，并隐藏 DSH 自己的占位提示
   React.useLayoutEffect(() => {
     if (!visible) { setBox(null); return undefined }
-    const found = findEditor(anchor.current)
+    const found = findComposer(anchor.current?.parentElement)
     if (!found) return undefined
     const { card, editor } = found
     const placeholder = findPlaceholder(editor)
@@ -83,21 +113,24 @@ export function Suggestion({ sessionId, inputActions, useInput, useSession }) {
     }
   }, [visible])
 
-  // Tab 采用预测：仅当焦点在本输入框内
+  // Tab 采用预测（打字中按也直接采用全文）：仅当焦点在本输入框内
   React.useEffect(() => {
-    if (!visible) return undefined
+    if (!showText) return undefined
     const onKeyDown = (event) => {
       if (event.key !== 'Tab' || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey || event.isComposing) return
-      const found = findEditor(anchor.current)
+      const found = findComposer(anchor.current?.parentElement)
       if (!found || !found.card.contains(document.activeElement)) return
       event.preventDefault()
       event.stopImmediatePropagation()
       inputActions.setDraft(text)
       setText('')
+      overlay(found.card, 'psm-fx psm-flash', 650)
     }
     document.addEventListener('keydown', onKeyDown, true)
     return () => document.removeEventListener('keydown', onKeyDown, true)
-  }, [visible, text, inputActions])
+  }, [showText, text, inputActions])
+
+  const done = typed >= text.length
 
   return (
     <span ref={anchor} style={{ display: 'contents' }}>
@@ -107,8 +140,19 @@ export function Suggestion({ sessionId, inputActions, useInput, useSession }) {
               className="psm-ghost"
               style={{ left: box.left, top: box.top, width: box.width, font: box.font, lineHeight: box.lineHeight }}
             >
-              {text}
-              <kbd>Tab</kbd>
+              {showText
+                ? (
+                    <>
+                      <span className="psm-ghost-text">{text.slice(0, typed)}</span>
+                      {done ? null : <span className="psm-caret" />}
+                    </>
+                  )
+                : (
+                    <>
+                      <Piano />
+                      <span className="psm-piano-label">正在想你下一句…</span>
+                    </>
+                  )}
             </span>
           )
         : null}

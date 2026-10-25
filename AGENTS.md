@@ -15,8 +15,9 @@ src/
     ├── index.jsx       注册到 window.__ModuleLoader__，把组件挂进输入框 slot
     ├── react.js        运行时注入的 React（JSX 编译成 h(...)）
     ├── api.js          调 host 接口
-    ├── styles.js       注入的 CSS（星星动画、灰字）
-    ├── PolishButton.jsx  星星按钮（slot: conversation.input.right）
+    ├── dom.js          查找输入卡片/编辑器、在其上叠 fixed 定位特效
+    ├── styles.js       注入的 CSS（全部动画和关键帧）
+    ├── PolishButton.jsx  闪光按钮（slot: conversation.input.right）
     └── Suggestion.jsx    预测灰字 + Tab（slot: conversation.input.overlay）
 scripts/build.mjs       esbuild：src/index.js → lib/index.js（Node ESM），src/client → lib/client.js（浏览器 IIFE）
 cordis.patch.yml        把 promptsmith 行插入 profile
@@ -37,6 +38,25 @@ locale/{en,zh}.json     插件市场显示的标题和描述（en 必填）
 - **路由安全**：`routes.js` 的 `trusted()` 要求自定义请求头 `x-dsh-promptsmith: 1`、拒绝 `sec-fetch-site: cross-site`、Origin 必须同源或为桌面端 `dsh-app://app`。
 
 DSH 源码参考：`packages/client/ui-conversation`（slot 与 InputActions 契约）、`packages/experimental/client-ui-voice-input`（输入框控件写法）、`packages/session/session-title-llm`（host 调模型）。
+
+## 动画设计
+
+统一用「锻造」意象（PromptSmith = 铁匠），配色是炉火渐变 `--psm-ember-1/2/3`（琥珀 → 橙 → 玫红）。成功和撤销只用动画表达，不弹文字；只有出错时显示文字气泡。
+
+| 时机 | 动画 | 位置 |
+|---|---|---|
+| 悬停 | 主闪光微转放大，小闪光闪烁 | `.psm-polish:hover` |
+| 草稿为空时点击 | 按钮左右抖动 | `psm-shake` |
+| 润色中 | 按钮像被锤子敲打 + 外圈旋转光环；草稿文字上循环扫过炉火光 | `psm-hammer`、`.psm-forging` |
+| 润色完成 | 12 颗火星迸出，图标弹出切换为撤销，新文字上扫过亮光 | `.psm-spark`、`psm-pop`、`.psm-sweep` |
+| 等待预测 | 钢琴键琶音 + 飘出音符 | `.psm-piano` |
+| 预测出现 | 逐字打出，带炉火色光标 | `TYPE_MS`、`.psm-caret` |
+| 按 Tab 采用 | 输入卡片边缘亮一圈 | `.psm-flash` |
+
+覆盖在输入框上的特效（扫光、闪光）用 `dom.js` 的 `overlay()` 以 fixed 定位挂到 body，每帧跟随目标元素位置。系统开启「减弱动态效果」时全部关闭，打字机直接显示全文。
+
+调试动画时可在页面里临时拖慢插件请求，便于截图：
+`const f = fetch; window.fetch = async (u, o) => { if (String(u).includes('/dsh-promptsmith/')) await new Promise(r => setTimeout(r, 4000)); return f(u, o) }`
 
 ## 本地开发
 
