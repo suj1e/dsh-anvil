@@ -20,7 +20,7 @@ function findPlaceholder(editor) {
 
 // 白键 + 黑键交替，与 i 一起决定按下顺序
 const KEYS = ['w', 'b', 'w', 'b', 'w', 'w', 'b', 'w']
-const NOTES = [{ x: 6, d: '0s', n: '♪' }, { x: 26, d: '.7s', n: '♫' }, { x: 44, d: '1.4s', n: '♪' }]
+const NOTES = [{ x: 4, d: '0s', n: '♪' }, { x: 22, d: '.7s', n: '♫' }, { x: 40, d: '1.4s', n: '♪' }]
 
 function Piano() {
   return (

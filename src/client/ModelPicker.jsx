@@ -1,9 +1,10 @@
 // 输入框工具栏的模型与推理等级选择器（替换 DSH 自带的模型位），交互参照 Claude 的模型菜单：
-// 一个按钮「模型名 + 表盘 + 等级」，滚轮直接换挡；点开是一个短菜单：
-//   最近用的 4 个模型（数字键 1–4 直选）→ 推理等级挡位条（自动开关）→「更多模型 ›」在右侧展开搜索与完整列表。
+// 一个按钮「模型名 + 等级文字标签（随热度变色）」，滚轮直接换挡；点开是一个短菜单：
+//   最近用的 4 个模型（数字键 1–4 直选）→「更多模型 ›」（点击才在右侧展开搜索与完整列表）→ 推理等级熔炉滑块（自动开关）。
+//   选完模型菜单不关，可以接着调推理等级。
 import { Fragment, h, React, ReactDOM } from './react.js'
-import { Gauge } from './Gauge.jsx'
-import { GearTrack } from './GearTrack.jsx'
+import { FurnaceSlider, heatColor } from './FurnaceSlider.jsx'
+import { heatStore } from './shared.js'
 
 const RECENT_KEY = 'dsh-anvil:recent-models'
 const QUICK_MAX = 4
@@ -84,8 +85,9 @@ export function ModelPicker({ locked, available, directory, load, select }) {
   const moreRow = React.useRef(null)
   const sub = React.useRef(null)
   const wheelTimer = React.useRef(0)
-  const hoverTimer = React.useRef(0)
   const [menuShift, setMenuShift] = React.useState(0) // 子菜单右侧放不下时，主菜单向左让出的距离
+  // 菜单首次定位前先放在屏外量尺寸；定好位之后才给水平移动加过渡，否则首次出现会从左边「飞」进来
+  const [menuPlaced, setMenuPlaced] = React.useState(false)
 
   const groups = state.groups
   const current = state.current
@@ -113,12 +115,17 @@ export function ModelPicker({ locked, available, directory, load, select }) {
   for (const group of groups) for (const model of group.models) pushQuick({ group, model })
   const moreIndex = quick.length
 
+  // 卸载时丢掉还没提交的滚轮换挡
+  React.useEffect(() => () => clearTimeout(wheelTimer.current), [])
+
+  React.useEffect(() => { heatStore.set(auto || gears.length === 0 ? 0.35 : fraction) }, [fraction, auto, gears.length])
+
   React.useEffect(() => {
     if (optimistic !== null && current?.model === optimistic.model && current?.reasoningEffort === optimistic.effort) setOptimistic(null)
   }, [current, optimistic])
 
   React.useEffect(() => {
-    if (!open) { setMoreOpen(false); setMenuShift(0); return }
+    if (!open) { setMoreOpen(false); setMenuShift(0); setMenuPlaced(false); return }
     load()
     setError(null)
     setHighlight(-1)
@@ -151,6 +158,7 @@ export function ModelPicker({ locked, available, directory, load, select }) {
     const left = baseMenuLeft()
     if (!rect || !el || left === null) return
     setMenuPos({ left: Math.max(12, left - menuShiftRef.current), top: Math.max(12, rect.top - 8 - el.offsetHeight) })
+    requestAnimationFrame(() => setMenuPlaced(true))
   }
   const menuShiftRef = React.useRef(0)
   menuShiftRef.current = menuShift
@@ -211,13 +219,16 @@ export function ModelPicker({ locked, available, directory, load, select }) {
     writeRecent(list)
     // 新模型也有当前这一挡就沿用；否则交给它的默认等级（不传 effort）
     const keep = gearsOf(model).find(g => g.effort === effort)
-    setOpen(false)
-    trigger.current?.focus()
+    // 菜单保持打开，选完模型可以接着调推理等级；从子菜单选的则收起子菜单回到主菜单
+    setMoreOpen(false)
+    setMenuShift(0)
+    requestAnimationFrame(() => menu.current?.focus())
     fail(await select({ provider: group.id, model: model.id, ...keep ? { reasoningEffort: keep.effort } : {} }))
   }
 
+  const closeMore = () => { setMoreOpen(false); setMenuShift(0) }
+
   const openMore = (focus) => {
-    clearTimeout(hoverTimer.current)
     setMoreOpen(true)
     setHighlight(moreIndex)
     if (focus) requestAnimationFrame(() => sub.current?.querySelector('input')?.focus())
@@ -250,13 +261,16 @@ export function ModelPicker({ locked, available, directory, load, select }) {
     ? (state.retainedEffort ?? '')
     : gears.length === 0 ? '' : auto ? '自动' : gears[index]?.label ?? ''
   const modelLabel = currentModel?.name ?? (current === null ? '请选择模型' : current.model)
+  const shortModel = modelLabel.split(' · ')[0]
+  const previewIndex = preview === null || gears.length === 0 ? null : Math.round(preview * (gears.length - 1))
+  const levelName = gears.length === 0 ? '不可调' : previewIndex !== null ? gears[previewIndex].label : auto ? '自动' : gears[index]?.label ?? ''
   const theme = dark ? 'dark' : 'light'
   const shownError = error ?? (state.status === 'error' ? state.error : null)
 
   const menuBody = (
     <div
       ref={menu}
-      className="anv-pop anv-menu"
+      className={menuPlaced ? 'anv-pop anv-menu anv-placed' : 'anv-pop anv-menu'}
       data-theme={theme}
       role="menu"
       aria-label="模型与推理等级"
@@ -277,7 +291,7 @@ export function ModelPicker({ locked, available, directory, load, select }) {
             aria-checked={selected}
             className={`anv-row${i === highlight ? ' anv-active' : ''}${selected ? ' anv-selected' : ''}`}
             title={`${entry.model.name} · ${entry.group.name}`}
-            onMouseEnter={() => { setHighlight(i); clearTimeout(hoverTimer.current); hoverTimer.current = setTimeout(() => { setMoreOpen(false); setMenuShift(0) }, 200) }}
+            onMouseEnter={() => setHighlight(i)}
             onClick={() => pickModel(entry.group, entry.model)}
           >
             <span className="anv-row-name">{entry.model.name}</span>
@@ -286,12 +300,31 @@ export function ModelPicker({ locked, available, directory, load, select }) {
         )
       })}
 
+      <button
+        ref={moreRow}
+        type="button"
+        role="menuitem"
+        aria-haspopup="menu"
+        aria-expanded={moreOpen}
+        className={`anv-row${highlight === moreIndex || moreOpen ? ' anv-active' : ''}`}
+        onMouseEnter={() => setHighlight(moreIndex)}
+        onClick={() => (moreOpen ? closeMore() : openMore(true))}
+      >
+        <span className="anv-row-name">更多模型</span>
+        <span className="anv-row-end anv-muted">{groups.reduce((n, g) => n + g.models.length, 0) || ''}</span>
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" className="anv-muted">
+          <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      </button>
+
       <div className="anv-sep" />
 
-      <div className={gears.length === 0 ? 'anv-gearbox anv-gearbox-empty' : 'anv-gearbox'} onWheel={onWheel}>
+      <div className="anv-gearbox" onWheel={onWheel}>
         <div className="anv-gear-head">
-          <Gauge fraction={fraction} size={22} stroke={3.2} active={!auto && gears.length > 0} />
-          <span className="anv-gear-title">推理等级</span>
+          <div className="anv-gear-titles">
+            <span className="anv-gear-level" key={levelName} style={{ color: auto || gears.length === 0 ? undefined : heatColor(fraction) }}>{levelName}</span>
+            <span className="anv-gear-sub">推理等级 · {shortModel}</span>
+          </div>
           {gears.length > 0 ? (
             <button
               type="button"
@@ -305,34 +338,19 @@ export function ModelPicker({ locked, available, directory, load, select }) {
               <span className={auto ? 'anv-switch anv-on' : 'anv-switch'}><i /></span>
               <span>自动</span>
             </button>
-          ) : <span className="anv-gear-none">该模型没有推理等级</span>}
+          ) : null}
         </div>
         {gears.length > 0 ? (
-          <>
-            <GearTrack gears={gears} index={index} disabled={locked} onCommit={i => commitEffort(gears[i].effort)} onPreview={setPreview} />
-            <div className="anv-gear-ends"><span>快</span><span>{auto ? '自动' : `${index + 1} / ${gears.length} 挡`}</span><span>深</span></div>
-          </>
+          <FurnaceSlider
+            gears={gears}
+            index={Math.max(0, index)}
+            auto={auto}
+            disabled={locked}
+            onCommit={i => commitEffort(gears[i].effort)}
+            onPreview={setPreview}
+          />
         ) : null}
       </div>
-
-      <div className="anv-sep" />
-
-      <button
-        ref={moreRow}
-        type="button"
-        role="menuitem"
-        aria-haspopup="menu"
-        aria-expanded={moreOpen}
-        className={`anv-row${highlight === moreIndex || moreOpen ? ' anv-active' : ''}`}
-        onMouseEnter={() => { setHighlight(moreIndex); clearTimeout(hoverTimer.current); hoverTimer.current = setTimeout(() => openMore(false), 120) }}
-        onClick={() => openMore(true)}
-      >
-        <span className="anv-row-name">更多模型</span>
-        <span className="anv-row-end anv-muted">{groups.reduce((n, g) => n + g.models.length, 0) || ''}</span>
-        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" className="anv-muted">
-          <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      </button>
 
       {shownError ? <div className="anv-pop-error">{shownError}</div> : null}
     </div>
@@ -352,8 +370,15 @@ export function ModelPicker({ locked, available, directory, load, select }) {
         onWheel={onWheel}
       >
         <span className="anv-trigger-name">{modelLabel}</span>
-        {gears.length > 0 ? <Gauge fraction={fraction} size={20} stroke={3.4} active={!auto} /> : null}
-        {gearLabel ? <span className="anv-trigger-gear" key={gearLabel}>{gearLabel}</span> : null}
+        {gearLabel ? (
+          <span
+            className="anv-trigger-gear"
+            key={gearLabel}
+            style={auto || gears.length === 0 ? undefined : { color: heatColor(fraction), background: `${heatColor(fraction)}24` }}
+          >
+            {gearLabel}
+          </span>
+        ) : null}
       </button>
       {open ? ReactDOM.createPortal(menuBody, document.body) : null}
       {open && moreOpen ? ReactDOM.createPortal(
@@ -362,7 +387,6 @@ export function ModelPicker({ locked, available, directory, load, select }) {
           className="anv-pop anv-sub"
           data-theme={theme}
           style={subPos ? { left: subPos.left, top: subPos.top } : { left: -9999, top: 0, visibility: 'hidden' }}
-          onMouseEnter={() => clearTimeout(hoverTimer.current)}
         >
           <MoreModels
             state={state}

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-dsh-anvil（Anvil 铁砧）是 DeepSeek Harness（DSH）输入框增强插件：一键润色草稿、回答结束后预测下一句、挡位式模型与推理等级选择。用户文档见 [README.md](README.md)。前身是 `dsh-promptsmith`，0.2.0 起改名。
+dsh-anvil（Anvil 铁砧）是 DeepSeek Harness（DSH）输入框增强插件：一键润色草稿、回答结束后预测下一句、模型与推理等级选择（熔炉滑块）、输入框换皮和趴在输入框上的像素小火龙。用户文档见 [README.md](README.md)，踩过的坑见 [LESSONS.md](LESSONS.md)。前身是 `dsh-promptsmith`，0.2.0 起改名。
 
 ## 结构
 
@@ -16,13 +16,15 @@ src/
     ├── react.js        运行时注入的 React / ReactDOM（JSX 编译成 h(...)）
     ├── api.js          调 host 接口
     ├── dom.js          查找输入卡片/编辑器、在其上叠 fixed 定位特效
+    ├── shared.js       组件间共享的推理「热度」（模型选择器写，小火龙读）
     ├── styles.js       注入的 CSS（全部动画和关键帧）
     ├── sparks.js       canvas 炉火粒子
     ├── PolishButton.jsx  闪光按钮（slot: conversation.input.right）
     ├── Suggestion.jsx    预测灰字 + Tab（slot: conversation.input.overlay）
     ├── ModelPicker.jsx   模型与推理等级菜单（slot: conversation.input.model，覆盖官方）
-    ├── GearTrack.jsx     刻度挡位条（拖动、火星）
-    └── Gauge.jsx         迷你转速表
+    ├── FurnaceSlider.jsx 推理等级熔炉滑块（熔流、火星粒子）
+    ├── Pet.jsx           小火龙（slot: conversation.input.overlay），顺带给卡片和工作区行打换皮 class
+    └── dragon.js         小火龙的像素点阵和各状态帧
 scripts/build.mjs       esbuild：src/index.js → lib/index.js（Node ESM），src/client → lib/client.js（浏览器 IIFE）
 cordis.patch.yml        把 anvil 行插入 profile
 locale/{en,zh}.json     插件市场显示的标题和描述（en 必填）
@@ -30,21 +32,9 @@ locale/{en,zh}.json     插件市场显示的标题和描述（en 必填）
 
 `lib/` 是构建产物，不进 git，发 npm 时由 `prepublishOnly` 构建。
 
-## DSH 接口要点（踩过的坑）
+## 踩坑记录
 
-- **客户端注册 id 必须等于包名**（`dsh-anvil`），否则 DSH 报 "loaded without registering"。`build.mjs` 会校验。
-- **会话 Hook 需要 selector**：slot 组件收到的 `useInput`、`useSession` 必须传函数，如 `useInput(s => s.draft)`，不传会报 `selector is not a function`。只取原始值字段，避免每次返回新对象导致重渲染。
-- **slot 选择**：`conversation.input.activity` 是 single，已被官方语音输入占用，所以闪光按钮放在 list 类型的 `conversation.input.right`；灰字放在 `conversation.input.overlay`（输入卡片内浮层）。list slot 注册需要 `id` 和 `order`。
-- **覆盖官方模型选择器**：`conversation.input.model` 是 single，官方占 priority 0；同 priority 再注册会抛错，更小的 priority 优先渲染，所以用 `priority: -1`。插件卸载或组件崩溃时 DSH 自动回退到官方选择器。
-- **模型目录**：复用官方 `ctx.modelDirectories.directoryFor(sessionId)`，`store`（`getSnapshot`/`subscribe`，配 `useSyncExternalStore`）给出 `groups`（提供方 → 模型 → `reasoning.efforts`/`defaultEffort`）、`current`、`pending`、`error`；切换用 `select({ provider, model, reasoningEffort? })`，不传 `reasoningEffort` 即「自动」（交给模型默认）。与 `/model` 命令共享状态。错误码 `session/writer-held` 表示会话正被别处占用。
-- **`directoryFor` 在调用方上下文里访问 `remote.session`**：插件必须在**插件级** `inject` 里声明 `modelDirectories`、`sessions`、`remote`、`remote.session`，否则报 `cannot get property "remote.session" without inject`。嵌套 `ctx.inject([...])` 声明不行。
-- **目录加载前 `current` 为 null**：所有读 `current` 的地方都要判空（曾因此在加载时序不同的情况下随机崩溃）。
-- **改草稿**：`inputActions.setDraft(text)` 整体替换，会把 `@文件` 等引用块变成纯文本。
-- **灰字定位**：DSH 没有公开的占位符接口。`Suggestion.jsx` 从 overlay 锚点向上找到 `[contenteditable="true"]` 编辑器，按其位置和字体绝对定位，并给 DSH 自带的占位提示加 `anv-hide-placeholder` 隐藏。DSH 改了输入框 DOM 结构时这里最可能坏。
-- **Tab 拦截**：在 document 捕获阶段监听 keydown，仅当灰字可见且焦点在本输入卡片内时拦截。
-- **菜单挂在 body 上**：用 `ReactDOM.createPortal`，读不到输入框所在主题，按触发按钮文字颜色推断深浅色（`isDarkText`）。
-- **host 调模型**：`ctx.sessions.get(id)` 取会话，`session.deriveMessages()` 取消息，`session.requestHeader()?.config` 取当前 provider/model，`ctx.llm.prepareCall({provider, model, maxTokens}, signal)` 后 `call.stream({...call.config, messages, system, sessionId, signal})`，累加 `text-delta`。参考了官方 `session-title-llm`。
-- **路由安全**：`routes.js` 的 `trusted()` 要求自定义请求头 `x-dsh-anvil: 1`、拒绝 `sec-fetch-site: cross-site`、Origin 必须同源或为桌面端 `dsh-app://app`。
+DSH 插件接口、DOM 与样式、动画、预测、调试、发布相关的坑都记在 [LESSONS.md](LESSONS.md)。改输入框相关代码前先看一遍，新踩的坑也补进去。
 
 DSH 源码参考：`packages/client/ui-conversation`（slot 与 InputActions 契约）、`packages/client/ui-model-selection`（模型目录与官方选择器）、`packages/client/ui-slots`（slot 优先级规则）、`packages/experimental/client-ui-voice-input`（输入框控件写法）、`packages/session/session-title-llm`（host 调模型）。
 
@@ -52,11 +42,16 @@ DSH 源码参考：`packages/client/ui-conversation`（slot 与 InputActions 契
 
 参照 Claude 的模型菜单，一个按钮加一个短菜单：
 
-- **工具栏按钮**：模型名、表盘、等级在同一条中线上；在按钮上滚动鼠标滚轮直接换挡（停 350ms 后提交，界面先乐观更新）。
-- **主菜单**：最近用的 4 个模型（`localStorage` 的 `dsh-anvil:recent-models`，不足时用当前模型及同组补齐），数字键 1–4 直选；推理等级挡位条，←→ 换挡；「更多模型 ›」。
-- **挡位条**：只画刻度不写字，挡位名只在挡把上；首尾刻度离两端留半个挡把宽（`INSET`），挡把不会伸出轨道。「自动」是独立开关，不占挡位。
-- **更多模型子菜单**：始终在主菜单右侧；右边放不下时主菜单向左滑开让位（`menuShift`）。搜索按模型名和提供方名做子序列匹配；分组展开时先列 8 个，其余点「显示全部」。
-- 切换模型时，新模型也有当前这一挡就沿用，否则交给它的默认等级。
+- **工具栏按钮**：模型名 + 等级文字标签，标签颜色随推理热度从琥珀到玫红；在按钮上滚动鼠标滚轮直接换挡（停 350ms 后提交，界面先乐观更新）。
+- **主菜单**（从上到下）：最近用的 4 个模型（`localStorage` 的 `dsh-anvil:recent-models`，不足时用当前模型及同组补齐），数字键 1–4 直选；「更多模型 ›」；分隔线；推理等级（大号等级名 + 熔炉滑块 + 「自动」开关），←→ 换挡。
+- **选完模型菜单不关**，可以接着调推理等级；新模型也有当前这一挡就沿用，否则交给它的默认等级。
+- **熔炉滑块**：胶囊轨道里是随挡位升温的熔流（热浪纹 + 火星），白色圆形拖把带 2px 炉火圈；拖动拖出火花尾迹，越挡迸火星，停在最高挡偶尔自己爆一下。刻度下方写挡位名，挡位多于 5 个时奇数挡显示为「·」。「自动」是独立开关，不占挡位。
+- **更多模型子菜单**：只在点击时打开（悬停只高亮，避免误触），始终在主菜单右侧；右边放不下时主菜单向左滑开让位（`menuShift`）。搜索按模型名和提供方名做子序列匹配；分组展开时先列 8 个，其余点「显示全部」。
+
+## 换皮与小火龙
+
+- **只换皮加东西**，不改 DSH 的交互：输入卡片上方的「默认工作区 / 标准模式」行做成标签条（`.anv-tabstrip`），卡片聚焦时亮一圈炉火色（`.anv-card`）；权限选择仍在「+」旁边。
+- **小火龙**：像素画，趴在卡片右上沿、朝左。闲着时一格一格地呼吸、眨眼、尾巴火跳；打字时眼珠往左看；模型思考时张嘴朝左喷火，推理挡位越高火越长；回答完成 ^^ 眼蹦两下；闲置 90 秒睡着；点它蹦一下。
 
 ## 动画设计
 
@@ -66,16 +61,17 @@ DSH 源码参考：`packages/client/ui-conversation`（slot 与 InputActions 契
 |---|---|---|
 | 悬停闪光按钮 | 主闪光微转放大，小闪光闪烁 | `.anv-polish:hover` |
 | 草稿为空时点击 | 按钮左右抖动 | `anv-shake` |
-| 润色中 | 按钮像被锤子敲打 + 外圈旋转光环；草稿文字上循环扫过炉火光 | `anv-hammer`、`.anv-forging` |
+| 润色中 | 按钮像被锤子敲打，圆形光晕随锤击明暗，每锤溅出 5 颗火星；草稿文字上循环扫过炉火光 | `anv-hammer`、`anv-halo`、`.anv-strike`、`.anv-forging` |
 | 润色完成 | 12 颗火星迸出，图标弹出切换为撤销，新文字上扫过亮光 | `.anv-spark`、`anv-pop`、`.anv-sweep` |
 | 等待预测 | 钢琴键琶音 + 飘出音符 | `.anv-piano` |
 | 预测出现 | 逐字打出，带炉火色光标 | `TYPE_MS`、`.anv-caret` |
 | 按 Tab 采用 | 输入卡片边缘亮一圈 | `.anv-flash` |
-| 拖动挡位 | 挡把跟手、轨道填满，按拖动速度溅火星 | `GearTrack`、`sparks.js` |
-| 挂挡 | 挡把「咔哒」放大，迸一簇火星，挡位越高越猛；表盘指针回弹 | `anv-click`、`.anv-gauge-needle` |
+| 拖动挡位 | 拖把跟手、熔流跟着伸缩，身后拖出火花尾迹 | `FurnaceSlider`、`sparks.js` |
+| 换挡 | 迸一簇火星，挡位越高越猛；等级名弹一下 | `FurnaceSlider`、`.anv-gear-level` |
+| 小火龙 | 逐帧换图（眨眼、尾巴火、喷火），呼吸和蹦跳用 `steps()` 保持像素感 | `Pet.jsx`、`dragon.js` |
 | 菜单 | 弹出时上浮淡入；主菜单为子菜单让位时滑动 | `anv-panel-in`、`.anv-menu` |
 
-覆盖在输入框上的特效（扫光、闪光）用 `dom.js` 的 `overlay()` 以 fixed 定位挂到 body，每帧跟随目标元素位置。系统开启「减弱动态效果」时全部关闭，打字机直接显示全文，不出火星。
+覆盖在输入框上的特效（扫光、闪光）用 `dom.js` 的 `overlay()` 以 fixed 定位挂到 body，每帧跟随目标元素位置；盖文字的扫光只盖内容盒并左右对称。系统开启「减弱动态效果」时全部关闭，打字机直接显示全文，不出火星。
 
 调试动画时可在页面里临时拖慢插件请求，便于截图：
 `const f = fetch; window.fetch = async (u, o) => { if (String(u).includes('/dsh-anvil/')) await new Promise(r => setTimeout(r, 4000)); return f(u, o) }`

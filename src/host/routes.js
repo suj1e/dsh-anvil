@@ -1,6 +1,6 @@
 // HTTP 接口：POST /dsh-anvil/polish、POST /dsh-anvil/predict
 import { complete, DEFAULTS, HttpError } from './llm.js'
-import { cleanOutput, POLISH_SYSTEM, polishInput, PREDICT_SYSTEM, predictInput } from './prompts.js'
+import { cleanOutput, cleanPrediction, lastAssistantText, POLISH_SYSTEM, polishInput, PREDICT_SYSTEM, predictInput } from './prompts.js'
 
 const MAX_BODY_BYTES = 256 * 1024
 const MAX_DRAFT_CHARS = 20000
@@ -81,7 +81,7 @@ const handlers = {
     const text = await complete(ctx, { ...options, maxTokens: Math.min(options.maxTokens, 256) }, {
       session, system: PREDICT_SYSTEM, input, signal,
     })
-    return { text: cleanOutput(text).split('\n')[0].trim() }
+    return { text: cleanPrediction(text, lastAssistantText(session)) }
   },
 }
 

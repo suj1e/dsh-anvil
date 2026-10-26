@@ -4,6 +4,7 @@ import { installStyles } from './styles.js'
 import { PolishButton } from './PolishButton.jsx'
 import { Suggestion } from './Suggestion.jsx'
 import { ModelPicker } from './ModelPicker.jsx'
+import { Pet } from './Pet.jsx'
 
 // 模型位是 single slot，官方选择器占着 priority 0；更小的 priority 优先渲染，卸载插件即恢复官方
 const MODEL_PRIORITY = -1
@@ -24,6 +25,10 @@ window.__ModuleLoader__.load({
       ctx.slots.inject('conversation.input.overlay', () => ctx.slots.register({
         name: 'conversation.input.overlay', id: 'dsh-anvil-suggestion', order: 0,
       }, Suggestion))
+      // 小火龙：同样借 overlay 拿会话状态，本体 portal 到 body 跟随卡片
+      ctx.slots.inject('conversation.input.overlay', () => ctx.slots.register({
+        name: 'conversation.input.overlay', id: 'dsh-anvil-pet', order: 1,
+      }, Pet))
       // 模型位：复用官方的会话模型目录（与 /model 命令共享状态）。
       // directoryFor 在调用方上下文里访问 remote.session，所以插件级 inject 要声明官方服务的依赖。
       const models = ctx.modelDirectories

@@ -55,6 +55,17 @@ function Sparks() {
   return <span className="anv-sparks" aria-hidden="true">{sparks}</span>
 }
 
+/** 润色中：每次锤击向上扇形溅出 5 颗火星（与 anv-hammer 同一 .6s 节拍） */
+function Strikes() {
+  return (
+    <span className="anv-strikes" aria-hidden="true">
+      {[-50, -24, 0, 24, 50].map((deg, i) => (
+        <i key={deg} className="anv-strike" style={{ '--a': `${deg}deg`, '--r': `${-(14 + (i % 2) * 6)}px`, '--c': SPARK_COLORS[i % 3] }} />
+      ))}
+    </span>
+  )
+}
+
 export function PolishButton({ sessionId, inputActions, useInput, useSession }) {
   // DSH 的会话 Hook 需要 selector，只取用到的字段
   const draft = useInput(state => state.draft)
@@ -68,6 +79,8 @@ export function PolishButton({ sessionId, inputActions, useInput, useSession }) 
   const original = React.useRef(null)
   const polished = React.useRef(null)
   const abort = React.useRef(null)
+  const latestDraft = React.useRef(draft)
+  latestDraft.current = draft
 
   const editable = phase === 'plain'
 
@@ -97,7 +110,7 @@ export function PolishButton({ sessionId, inputActions, useInput, useSession }) 
   React.useEffect(() => {
     if (state !== 'working') return undefined
     const found = findComposer(root.current)
-    return found ? overlay(found.editor, 'anv-fx anv-forging') : undefined
+    return found ? overlay(found.editor, 'anv-fx anv-forging', undefined, { pad: 8, frame: found.card }) : undefined
   }, [state])
 
   // 切换会话或卸载时取消进行中的请求
@@ -107,7 +120,7 @@ export function PolishButton({ sessionId, inputActions, useInput, useSession }) 
   const sweep = () => {
     requestAnimationFrame(() => {
       const found = findComposer(root.current)
-      if (found) overlay(found.editor, 'anv-fx anv-sweep', 950)
+      if (found) overlay(found.editor, 'anv-fx anv-sweep', 950, { pad: 8, frame: found.card })
     })
   }
 
@@ -127,6 +140,8 @@ export function PolishButton({ sessionId, inputActions, useInput, useSession }) 
     try {
       const result = await polish(sessionId, text, controller.signal)
       if (controller.signal.aborted) return
+      // 润色期间用户又改了草稿：不覆盖用户刚打的字，放弃这次结果
+      if (latestDraft.current.trim() !== text) { setState('idle'); return }
       original.current = draft
       polished.current = result
       inputActions.setDraft(result)
@@ -159,6 +174,7 @@ export function PolishButton({ sessionId, inputActions, useInput, useSession }) 
         <span key={state === 'done' ? 'undo' : 'sparkle'} className="anv-icon">
           {state === 'done' ? <UndoIcon /> : <SparkleIcon />}
         </span>
+        {state === 'working' ? <Strikes /> : null}
         {burst === 0 ? null : <Sparks key={burst} />}
       </button>
       {bubble === null ? null : <span key={bubble.at} className="anv-bubble" data-kind={bubble.kind}>{bubble.text}</span>}
