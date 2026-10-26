@@ -1,6 +1,6 @@
 {
   "name": "dsh-anvil",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "DeepSeek Harness 输入框增强：一键润色、预测下一句、熔炉滑块式模型与推理等级选择、像素小火龙",
   "keywords": [
     "dsh",
