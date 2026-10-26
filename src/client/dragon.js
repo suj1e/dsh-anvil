@@ -50,15 +50,15 @@ const MOUTH_OPEN = { 8: '.obpbbeebbpbooooo.ofo' }
 
 /**
  * @param {object} o
- * @param {'idle'|'typing'|'thinking'|'done'|'sleep'} o.mood
+ * @param {'idle'|'typing'|'thinking'|'done'|'sleep'|'held'} o.mood
  * @param {number} o.tick - 动画帧计数
  * @param {number} o.heat - 0~1，喷火长度
  * @returns {{ x: number, y: number, c: string }[]} 像素列表（x 可为负：嘴前的火）
  */
 export function dragonPixels({ mood, tick, heat }) {
-  const blink = mood !== 'sleep' && mood !== 'done' && tick % 14 === 0
+  const blink = mood !== 'sleep' && mood !== 'done' && mood !== 'held' && tick % 14 === 0
   const eyes = mood === 'sleep' || blink ? EYES.shut
-    : mood === 'done' ? EYES.happy
+    : mood === 'done' || mood === 'held' ? EYES.happy
       : mood === 'typing' ? EYES.left
         : EYES.open
   const rows = BASE.slice()

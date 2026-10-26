@@ -188,7 +188,12 @@ const CSS = `
 .anv-pet { position: fixed; z-index: 0; pointer-events: none; }
 /* 只有画出来的像素能点：整块 svg 接收点击会挡住下面的消息和按钮 */
 .anv-pet-svg { display: block; overflow: visible; pointer-events: none; image-rendering: pixelated; }
-.anv-pet-svg rect { pointer-events: visiblePainted; cursor: pointer; }
+.anv-pet-svg rect { pointer-events: visiblePainted; cursor: grab; touch-action: none; }
+/* 被拎起来：整体抬高一点，不呼吸；松手落回时轻轻弹一下 */
+.anv-pet[data-mood="held"] .anv-pet-svg { transform: translateY(-6px); }
+.anv-pet[data-mood="held"] .anv-pet-svg rect { cursor: grabbing; }
+.anv-pet[data-mood="held"] .anv-pet-bob { animation: none; }
+.anv-pet-drop { animation: anv-pet-drop .3s steps(3); }
 /* 像素风的呼吸：整体上下挪一格，不做平滑缩放 */
 .anv-pet-bob { animation: anv-pet-bob 1.6s steps(1) infinite; }
 .anv-pet-hop { animation: anv-pet-hop .8s steps(4) 2; }
@@ -201,6 +206,7 @@ const CSS = `
 @keyframes anv-pet-hop { 0%, 100% { transform: translateY(0); } 25% { transform: translateY(-8px); } 50% { transform: translateY(-4px); } }
 @keyframes anv-pet-z { 0% { opacity: 0; transform: translate(0, 0); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate(-4px, -6px); } }
 @keyframes anv-pet-tw { 50% { opacity: 0; } }
+@keyframes anv-pet-drop { 0% { transform: translateY(-6px); } 66% { transform: translateY(2px); } 100% { transform: none; } }
 @keyframes anv-shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-3px); } 40%, 80% { transform: translateX(3px); } }
 @keyframes anv-pop { from { transform: scale(.3) rotate(-90deg); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes anv-twinkle { 0%, 100% { transform: scale(.55); opacity: .5; } 50% { transform: scale(1.15); opacity: 1; } }
