@@ -4,7 +4,9 @@ import { h, React } from './react.js'
 import { createSparks } from './sparks.js'
 import { reducedMotion } from './dom.js'
 
-const PILL = 36 // 胶囊高度，拖把直径 28，左右各留 4
+const PILL = 28 // 胶囊高度
+const GAP = 3 // 拖把四周到胶囊边的间隙，上下左右一致
+const KNOB = PILL - GAP * 2 // 拖把直径 22
 const HEAT = ['#fcd34d', '#fbbf24', '#f59e42', '#f97316', '#ef4444', '#f472b6']
 const EMBER = ['#fff6dd', '#fde68a', '#fbbf24', '#fb923c']
 
@@ -12,7 +14,7 @@ export const heatColor = f => HEAT[Math.min(HEAT.length - 1, Math.round(Math.max
 const fracOf = (i, n) => (n <= 1 ? 1 : i / (n - 1))
 const nearest = (f, n) => (n <= 1 ? 0 : Math.round(f * (n - 1)))
 /** 0~1 → 拖把左边缘 / 熔流宽度 */
-const thumbLeft = f => `calc(${f} * (100% - ${PILL}px) + 4px)`
+const thumbLeft = f => `calc(${f} * (100% - ${PILL}px) + ${GAP}px)`
 const fillWidth = f => `calc(${f} * (100% - ${PILL}px) + ${PILL}px)`
 
 /**
@@ -127,10 +129,10 @@ export function FurnaceSlider({ gears, index, auto, onCommit, onPreview, disable
 
   const thumbX = (value) => {
     const r = pill.current?.getBoundingClientRect()
-    return r ? 4 + 14 + value * (r.width - PILL) : 0
+    return r ? PILL / 2 + value * (r.width - PILL) : 0
   }
 
-  useMolten(molten, () => (autoRef.current ? 0 : thumbX(fRef.current) + 14), () => fRef.current, true)
+  useMolten(molten, () => (autoRef.current ? 0 : thumbX(fRef.current) + KNOB / 2), () => fRef.current, true)
 
   React.useEffect(() => {
     if (reducedMotion() || fx.current === null) return undefined
@@ -198,7 +200,7 @@ export function FurnaceSlider({ gears, index, auto, onCommit, onPreview, disable
     if (target !== index || auto) onCommit(target)
   }
 
-  // 拖把的光只用贴身的 2px 炉火圈 + 轻投影，留在上下 4px 间隙之内：
+  // 拖把的光只用贴身的 2px 炉火圈 + 轻投影，留在四周 3px 间隙之内：
   // 外溢的大光晕会被胶囊上下边缘削平，让圆看起来像圆角方块、上下间隙也显得不一致
   const glow = auto
     ? '0 1px 3px rgba(0, 0, 0, .35)'
@@ -224,7 +226,7 @@ export function FurnaceSlider({ gears, index, auto, onCommit, onPreview, disable
       >
         <div className={hot ? 'anv-molten anv-molten-hot' : 'anv-molten'} style={{ width: auto ? 0 : fillWidth(f) }} />
         <canvas ref={molten} className="anv-molten-fx" aria-hidden="true" />
-        <span className="anv-thumb" style={{ left: thumbLeft(f), boxShadow: glow, opacity: auto ? 0.35 : 1 }} />
+        <span className="anv-thumb" style={{ top: GAP, width: KNOB, height: KNOB, left: thumbLeft(f), boxShadow: glow, opacity: auto ? 0.35 : 1 }} />
       </div>
       <canvas ref={fx} className="anv-furnace-fx" aria-hidden="true" />
       <div className="anv-furnace-ticks">

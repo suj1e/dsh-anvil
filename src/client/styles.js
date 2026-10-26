@@ -319,8 +319,8 @@ const MODEL_CSS = `
 
 .anv-furnace { position: relative; }
 .anv-pill {
-  position: relative; height: 36px;
-  border-radius: 18px;
+  position: relative; height: 28px;
+  border-radius: 14px;
   background: var(--anv-pill);
   box-shadow: inset 0 0 0 1px var(--anv-border);
   overflow: hidden;
@@ -330,7 +330,7 @@ const MODEL_CSS = `
 .anv-pill[aria-disabled] { cursor: default; opacity: .5; }
 .anv-molten {
   position: absolute; left: 0; top: 0; bottom: 0;
-  border-radius: 18px;
+  border-radius: 14px;
   background: linear-gradient(90deg, #78350f, #b45309 40%, #f59e0b 80%, #fbbf24);
   transition: width .35s cubic-bezier(.34, 1.56, .64, 1);
   animation: anv-molten-flick .35s ease-in-out infinite alternate;
@@ -338,8 +338,9 @@ const MODEL_CSS = `
 .anv-molten-hot { background: linear-gradient(90deg, #92400e, #d97706 35%, #f97316 70%, #f472b6); }
 .anv-molten-fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .anv-thumb {
-  position: absolute; top: 4px;
-  width: 28px; height: 28px; border-radius: 50%;
+  /* top / width / height 由 FurnaceSlider 按 PILL、GAP 算出 */
+  position: absolute;
+  border-radius: 50%;
   background: #fafafa;
   transition: left .35s cubic-bezier(.34, 1.56, .64, 1), box-shadow .3s, opacity .2s;
   pointer-events: none;
